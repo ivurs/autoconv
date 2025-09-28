@@ -14,7 +14,7 @@ def deploy(c):
     )
     c.run(f"cd {REMOTE_DIR} && git pull")
     c.run(f"cd {REMOTE_DIR}/frontend && npm install")
-    c.run(f"cd {REMOTE_DIR}/backend && python -m venv .venv")
+    c.run(f"cd {REMOTE_DIR}/backend && python3 -m venv .venv")
     c.run(f"cd {REMOTE_DIR}/backend && source .venv/bin/activate")
     c.run(f"cd {REMOTE_DIR}/backend && pip install -r requirements.txt")
     c.run("sudo systemctl restart autoconv")
