@@ -1,4 +1,4 @@
-# file_pretrail_frontend
+# frontend
 
 ## Project setup
 ```
