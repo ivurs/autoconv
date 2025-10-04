@@ -1,7 +1,7 @@
 
 from fastapi import FastAPI
-from starlette.middleware.cors import CORSMiddleware
-#from fastapi.middleware.cors import CORSMiddleware
+#from starlette.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import routes
 
@@ -18,8 +18,8 @@ origins = [
 # 添加 CORS 中间件，允许指定的来源
 app.add_middleware(
     CORSMiddleware,
-    #allow_origins=origins,  # 允许的源
-    allow_origins=["*"],  # 允许的源
+    allow_origins=origins,  # 允许的源
+    #allow_origins=["*"],  # 允许的源
     allow_credentials=True,  # 是否允许携带 cookie
     allow_methods=["*"],  # 允许的 HTTP 方法 (GET, POST, PUT, DELETE, PATCH, etc.)
     allow_headers=["*"],  # 允许的头部
