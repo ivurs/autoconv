@@ -79,6 +79,20 @@ async def list_new_job_for_lawyer_api(page: int, pageSize: int, db: Session = De
     job_list = list_new_job_for_lawyer(page, pageSize, lawyer_id, db)
     return ResultUtils.success(job_list)
 
+from fastapi.responses import JSONResponse
+
+@router.options("/create")
+async def options_job_create():
+    """
+    Handle browser CORS preflight for POST /job/create
+    """
+    response = JSONResponse(content={"message": "CORS preflight OK"})
+    response.headers["Access-Control-Allow-Origin"] = "http://209.38.25.194:3000"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
 @router.post("/create")
 async def create_job(
     job_create_request: JobCreateRequest,  # 从前端接收的工单数据
