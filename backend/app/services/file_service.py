@@ -2,16 +2,6 @@ import os
 import re
 from io import BytesIO
 
-import boto3
-from dotenv import load_dotenv
-
-load_dotenv()  # 加载项目根目录下的 .env 文件
-
-AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-BUCKET_NAME = os.getenv("BUCKET_NAME")
-print(F"BUCKET_NAME: {BUCKET_NAME}")
-
 import pymupdf
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
@@ -31,32 +21,6 @@ UPLOAD_DIRECTORY = "contracts"  # 文件保存路径
 MAX_FILE_SIZE = 1000 * 1024 * 1024  # 1GB 文件大小限制
 
 
-
-s3 = boto3.client(
-    "s3",
-    aws_access_key_id=AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-    region_name="ap-southeast-2"
-)
-
-response = s3.get_bucket_location(Bucket=BUCKET_NAME)
-print(response["LocationConstraint"])
-
-bucket_name = BUCKET_NAME
-
-# Create the bucket if it doesn't exist
-try:
-    s3.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": "ap-southeast-2"}
-    )
-    print(f"✅ Created bucket: {bucket_name}")
-except s3.exceptions.BucketAlreadyOwnedByYou:
-    print(f"ℹ️ Bucket already exists: {bucket_name}")
-
-#local_file = "test.txt"
-#s3_key = "test.txt"   
-
 async def upload_file_service(file: UploadFile, user_id: int, db: Session):
     # 文件校验
     if not file:
@@ -65,15 +29,6 @@ async def upload_file_service(file: UploadFile, user_id: int, db: Session):
     # check file type, pdf only for now
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="只能上传 PDF 文件")
-
-    # 获取原始文件名
-    original_filename = file.filename
-    print(f"原始文件名: {original_filename}")
-    
-    # 获取文件内容类型
-    content_type = file.content_type
-    print(f"文件类型: {content_type}")
-
 
     # 读取文件内容并保存到变量，确保文件不会被消费
     file_content = await file.read()  # 读取文件内容
@@ -91,48 +46,30 @@ async def upload_file_service(file: UploadFile, user_id: int, db: Session):
     # 生成新的文件名，避免文件名冲突
     file_name = str(uuid.uuid4()) + '.' + file_extension
 
+    # 上传文件到阿里云 OSS（你可以修改为保存到本地或者其他地方）
+    #file_path_alioss = upload_to_oss(file, file_name)  # 你可以修改这里来实现不同的存储方案
+    file_path = os.path.join(UPLOAD_DIRECTORY, file_name)
 
-    # 构建S3存储路径
-    s3_key = f"uploads/{file_name}"
+    if not os.path.exists(UPLOAD_DIRECTORY):
+        os.makedirs(UPLOAD_DIRECTORY)
+    with open(file_path, "wb") as f:
+        f.write(file_content)
 
-     # 上传到S3
-    try:
-        s3.put_object(
-            Bucket=bucket_name,        # 存储桶：'my-app-files'
-            Key=s3_key,                     # S3路径：'user-uploads/photo.jpg'
-            Body=file_content,                  # 文件内容：图片的二进制数据
-            ContentType=file.content_type,  # 内容类型：'image/jpeg'
-            Metadata={
-                'original-filename': file.filename  # 元数据：保存原始文件名'photo.jpg'
-            }
-        )
-        print(f"✅ Uploaded {original_filename} to s3://{bucket_name}/{s3_key}")
-    except Exception as e:
-        print(f"❌ Upload failed: {e}")
-
-    ## 生成预签名URL（可选，用于直接访问）不是永久的，这个逻辑和阿里云的逻辑不一样，这个地方还要重新设计
-    presigned_url = s3.generate_presigned_url(
-    'get_object',
-    Params={'Bucket': bucket_name, 'Key': s3_key},
-    ExpiresIn=604800  # 7天 = 60*60*24*7
-    )
-    print(f"presigned_url ： {presigned_url}")
     # 将文件信息保存到数据库
-    
     new_file = MyFile(
         file_name=file.filename,
         file_type=file_extension,
-        path=presigned_url,  # 保存的路径
+        path=file_path,  # 保存的路径
         content=file_content,  # 这里会保存文件内容
         create_time=datetime.now(),
         update_time=datetime.now(),
         is_deleted=0  # 文件未删除
     )
-    
+
     db.add(new_file)
     db.commit()
     db.refresh(new_file)
-    
+
     # 返回文件的ID
     return new_file.id
 
