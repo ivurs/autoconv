@@ -9,6 +9,7 @@ app = FastAPI(title="Flower FastAPI Project")
 # 配置 CORS
 origins = [
     "http://localhost:3000",  # 前端开发服务器地址（Vue 或其他）
+    "http://209.38.25.194:3000", 
     # 如果你有生产环境，可以再加上允许的生产环境地址
     # "https://yourfrontenddomain.com",
 ]
