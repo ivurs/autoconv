@@ -50,7 +50,10 @@ async def upload_file_service(file: UploadFile, user_id: int, db: Session):
 
     # 上传文件到阿里云 OSS（你可以修改为保存到本地或者其他地方）
     #file_path_alioss = upload_to_oss(file, file_name)  # 你可以修改这里来实现不同的存储方案
+<<<<<<< HEAD
     file_path_aws = upload_to_aws(file, file_name)  # 你可以修改这里来实现不同的存储方案
+=======
+>>>>>>> d79512f8a4ee84596a44551c6fe9fdf6ea054013
     file_path = os.path.join(UPLOAD_DIRECTORY, file_name)
 
     if not os.path.exists(UPLOAD_DIRECTORY):

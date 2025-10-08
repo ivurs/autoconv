@@ -142,11 +142,19 @@ const submitWorkOrder = async () => {
   formData.append('clientBudget', form.value.clientBudget);
 
   try {
-    const response = await axios.post(`/job/create`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
+    const token = localStorage.getItem("token");
+
+    const response = await axios.post(
+      "http://209.38.25.194:8001/job/create",   // ✅ full backend URL
+      formData,
+      {
+        headers: {
+          "Authorization": `Bearer ${token}`,   // ✅ include JWT
+          "Content-Type": "multipart/form-data",
+        },
+        withCredentials: true,                  // ✅ handle cookies/CORS
       }
-    });
+    );
     if (response.data && response.data.code === 200) {
       dialogShow.value = false;
       form.value = {jobName: '', jobType: '', jobIntro: '', myFile: [], clientBudget: ''};

@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -78,6 +79,18 @@ async def list_new_job_for_lawyer_api(page: int, pageSize: int, db: Session = De
     # 调用 service 层获取分页后的新工单列表
     job_list = list_new_job_for_lawyer(page, pageSize, lawyer_id, db)
     return ResultUtils.success(job_list)
+
+@router.options("/create")
+async def options_job_create():
+    """
+    Handle browser CORS preflight for POST /job/create
+    """
+    response = JSONResponse(content={"message": "CORS preflight OK"})
+    response.headers["Access-Control-Allow-Origin"] = "http://209.38.25.194:3000"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 @router.post("/create")
 async def create_job(
