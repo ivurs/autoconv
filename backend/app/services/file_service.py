@@ -8,12 +8,14 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 import shutil
 import uuid
+from termcolor import colored
 
 from sqlalchemy.testing import db
 
 from app.models.file import MyFile
 from app.models.file_seg_results import FileSegResults
 from app.utils.alioss_utils import upload_to_oss
+from app.utils.aws_utils import upload_to_aws
 from app.utils.file_analysis_utils import get_special_condition_starting_page_index_new, get_all_text, load_kept_word, \
     ALL_PATTERN, load_model, select_kept_word, get_pred_result, SELECT_COLS
 
@@ -47,7 +49,8 @@ async def upload_file_service(file: UploadFile, user_id: int, db: Session):
     file_name = str(uuid.uuid4()) + '.' + file_extension
 
     # 上传文件到阿里云 OSS（你可以修改为保存到本地或者其他地方）
-    file_path_alioss = upload_to_oss(file, file_name)  # 你可以修改这里来实现不同的存储方案
+    #file_path_alioss = upload_to_oss(file, file_name)  # 你可以修改这里来实现不同的存储方案
+    file_path_aws = upload_to_aws(file, file_name)  # 你可以修改这里来实现不同的存储方案
     file_path = os.path.join(UPLOAD_DIRECTORY, file_name)
 
     if not os.path.exists(UPLOAD_DIRECTORY):
@@ -101,16 +104,18 @@ def file_analysis(file_id: int, db: Session):
             raise Exception("Sorry, we can't find any special condition or maybe this is a scanned pdf")
 
         cur_pdf = get_all_text(file_path, doc, start_page)
-        print(cur_pdf)
+        #print(cur_pdf)
         all_kept_kw = load_kept_word()
         cur_pdf['paragraph'] = cur_pdf['paragraph'].apply(
             lambda x: ' '.join([i.lower().strip() for i in re.sub(ALL_PATTERN, ' ', x).lower().split(" ")]))
         cur_pdf['paragraph_clean'] = cur_pdf['paragraph'].apply(lambda x: select_kept_word(x, all_kept_kw))
         model = load_model()
+        print(colored("model加载完成--------------------", "green"))
         cur_pdf['model_predict_details'] = cur_pdf['paragraph_clean'].apply(lambda x: model.predict(x))
         cur_pdf['model_predict_labels'] = cur_pdf['model_predict_details'].apply(lambda x: get_pred_result(x))
 
     # 再保存段落信息
+    print(colored("开始保存段落信息！！", "green"))
     for _, row in cur_pdf.iterrows():
         new_paragraph = FileSegResults(
             fid=file_id,
