@@ -35,6 +35,9 @@ async def upload_file_service(file: UploadFile, user_id: int, db: Session):
     # 读取文件内容并保存到变量，确保文件不会被消费
     file_content = await file.read()  # 读取文件内容
 
+     # 重置文件指针
+    await file.seek(0)
+
     # 获取文件大小
     file_size = len(file_content)
 

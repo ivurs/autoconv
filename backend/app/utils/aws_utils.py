@@ -52,6 +52,7 @@ def upload_to_aws(file: UploadFile, file_name: str) -> str:
     original_filename = file.filename
     print(f"原始文件名: {original_filename}")
 
+  
     # 读取文件内容
     file_content = file.file.read()
 
