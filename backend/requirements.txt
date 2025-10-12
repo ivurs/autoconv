@@ -25,3 +25,4 @@ PyMuPDF==1.24.3
 tqdm==4.66.2
 protobuf==3.20.3
 gunicorn
+termcolor
