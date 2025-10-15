@@ -1,4 +1,11 @@
 
+
+import sys
+import os
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(project_root)
+
 from fastapi import FastAPI
 #from starlette.middleware.cors import CORSMiddleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +17,7 @@ app = FastAPI(title="Flower FastAPI Project")
 # 配置 CORS
 origins = [
     "http://localhost:3000",  # 前端开发服务器地址（Vue 或其他）
-    "http://209.38.25.194:3000", 
+    #"http://209.38.25.194:3000", 
     # 如果你有生产环境，可以再加上允许的生产环境地址
     # "https://yourfrontenddomain.com",
 ]
