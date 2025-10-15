@@ -15,7 +15,7 @@ from sqlalchemy.testing import db
 from app.models.file import MyFile
 from app.models.file_seg_results import FileSegResults
 from app.utils.alioss_utils import upload_to_oss
-from app.utils.aws_utils import upload_to_aws
+from app.utils.aws_utils import upload_to_aws, upload_local_to_aws
 from app.utils.file_analysis_utils import get_special_condition_starting_page_index_new, get_all_text, load_kept_word, \
     ALL_PATTERN, load_model, select_kept_word, get_pred_result, SELECT_COLS
 
@@ -53,13 +53,15 @@ async def upload_file_service(file: UploadFile, user_id: int, db: Session):
 
     # 上传文件到阿里云 OSS（你可以修改为保存到本地或者其他地方）
     #file_path_alioss = upload_to_oss(file, file_name)  # 你可以修改这里来实现不同的存储方案
-    file_path_aws = upload_to_aws(file, file_name)  # 你可以修改这里来实现不同的存储方案
+    #file_path_aws = upload_to_aws(file, file_name)  # 你可以修改这里来实现不同的存储方案
     file_path = os.path.join(UPLOAD_DIRECTORY, file_name)
 
     if not os.path.exists(UPLOAD_DIRECTORY):
         os.makedirs(UPLOAD_DIRECTORY)
     with open(file_path, "wb") as f:
         f.write(file_content)
+    # 上传文件到阿里云 OSS（你可以修改为保存到本地或者其他地方）
+    file_path_aws = upload_local_to_aws(file_path, file_name)   
 
     # 将文件信息保存到数据库
     new_file = MyFile(

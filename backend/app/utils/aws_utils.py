@@ -98,3 +98,56 @@ def upload_to_aws(file: UploadFile, file_name: str) -> str:
     #file_url = f"https://{OSS_BUCKET_NAME}.{OSS_ENDPOINT}/{file_name}"
 
     return file_url
+
+
+def upload_local_to_aws(local_file: str,file_name: str) -> str:
+    """
+    上传文件到AWS
+    """
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        region_name="ap-southeast-2"
+    )
+
+    response = s3.get_bucket_location(Bucket=BUCKET_NAME)
+    print(response["LocationConstraint"])
+
+    bucket_name = BUCKET_NAME
+
+    # Create the bucket if it doesn't exist
+    try:
+        s3.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": "ap-southeast-2"}
+        )
+        print(f"✅ Created bucket: {bucket_name}")
+    except s3.exceptions.BucketAlreadyOwnedByYou:
+        print(f"ℹ️ Bucket already exists: {bucket_name}")
+
+     # 构建S3存储路径
+    s3_key = f"uploads/{file_name}"
+
+    # Upload
+    try:
+        s3.upload_file(local_file, bucket_name, s3_key)
+        print(f"✅ Uploaded {local_file} to s3://{bucket_name}/{s3_key}")
+    except Exception as e:
+        print(f"❌ Upload failed: {e}")
+
+    #print(datetime.datetime.now())
+    print(colored(datetime.datetime.now(), "red"))
+    ## 生成预签名URL（可选，用于直接访问）不是永久的，这个逻辑和阿里云的逻辑不一样，这个地方还要重新设计
+    presigned_url = s3.generate_presigned_url(
+    'get_object',
+    Params={'Bucket': bucket_name, 'Key': s3_key},
+    ExpiresIn=604800  # 7天 = 60*60*24*7
+    )
+    print(f"presigned_url ： {presigned_url}")
+    # 将文件信息保存到数据库
+
+    file_url = presigned_url
+
+
+    return file_url
