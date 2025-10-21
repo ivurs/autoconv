@@ -194,13 +194,13 @@ const beforeUpload = async (file: File) => {
   formData.append('file', file)
 
   try {
-    const res = await fileUpload(formData, {
-      onUploadProgress: (progressEvent: any) => {
-        if (progressEvent.lengthComputable) {
-          uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-        }
-      },
-    })
+      const res = await fileUpload(formData, {
+        onUploadProgress: (progressEvent: any) => {
+          if (progressEvent.lengthComputable) {
+            uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          }
+        },
+      });
 
     ruleForm.value.file_id = res.data.data.data
     uploadProgress.value = 100

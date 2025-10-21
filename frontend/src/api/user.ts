@@ -66,14 +66,15 @@ export const jobCreate = async (params: any) => {
   });
 };
 
-export const fileUpload = async (params: any) => {
+export const fileUpload = async (params: any, config: any = {}) => {
   return myAxios.request({
     url: "/file/upload",
     method: "POST",
-    data:params,
+    data: params,
     headers: {
-        "Content-Type": "multipart/form-data",
-    }
+      "Content-Type": "multipart/form-data",
+    },
+    ...config, // ✅ Pass through progress callback
   });
 };
 
