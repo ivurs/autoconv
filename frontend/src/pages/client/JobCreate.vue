@@ -1,5 +1,5 @@
 <template>
-  <!-- 🌟 AI Loading Overlay -->
+  <!-- 🌟 Full-screen loading overlay -->
   <transition name="fade">
     <div v-if="isLoading" class="loading-overlay">
       <div class="loading-box">
@@ -159,7 +159,7 @@ const disabledDate = (time: Date) => time.getTime() < Date.now()
 const goNextStep = () => currentStep.value++
 const goPrevStep = () => currentStep.value--
 
-/* ✅ Fixed Upload */
+/* ✅ File Upload */
 const beforeUpload = async (file: File) => {
   if (file.size / 1024 / 1024 > 100) {
     ElMessage.error('文件大小不应超过 100 MB')
@@ -172,34 +172,40 @@ const beforeUpload = async (file: File) => {
   try {
     const res = await fileUpload(formData)
     console.log('📂 上传返回:', res.data)
-    const fid =
-      res?.data?.data?.file_id ??
-      res?.data?.data?.data ??
-      res?.data?.file_id ??
-      res?.data?.data ??
-      null
 
-    if (!fid || isNaN(fid)) {
-      ElMessage.error('文件上传返回的 file_id 无效')
+    // ✅ Detect file_id automatically from any backend structure
+    const possibleIds = [
+      res?.data?.data?.file_id,
+      res?.data?.data?.data,
+      res?.data?.data,
+      res?.data?.file_id,
+      res?.data,
+    ]
+    const fid = possibleIds.find(v => typeof v === 'number' || /^[0-9]+$/.test(v))
+
+    if (!fid) {
+      ElMessage.error('后端未返回有效 file_id，请检查接口返回')
       return false
     }
 
     ruleForm.file_id = Number(fid)
+    console.log('✅ 保存 file_id:', ruleForm.file_id)
     ElMessage.success(`文件上传成功 (ID: ${fid})`)
-    return true // ✅ allow upload tracking
   } catch (err) {
     console.error(err)
     ElMessage.error('文件上传失败')
-    return false
   }
+
+  return false // stop default auto-upload
 }
 
-/* ✅ Submit with loading overlay */
+/* ✅ Submit with Loading Overlay */
 const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
   await formEl.validate(async (valid) => {
     if (!valid) return
 
+    console.log('🧩 提交 file_id:', ruleForm.file_id)
     if (ruleForm.file_id <= 0) {
       ElMessage.warning('请先上传文件')
       return
@@ -263,7 +269,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* 🌟 Overlay */
+/* 🌟 AI Loading Overlay */
 .loading-overlay {
   position: fixed;
   top: 0; left: 0;
