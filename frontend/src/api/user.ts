@@ -74,7 +74,9 @@ export const fileUpload = async (params: any, config: any = {}) => {
     headers: {
       "Content-Type": "multipart/form-data",
     },
-    ...config, // ✅ Pass through progress callback
+    // ✅ explicitly handle onUploadProgress if provided
+    onUploadProgress: config.onUploadProgress || undefined,
   });
 };
+
 
