@@ -1,10 +1,12 @@
 <template>
+  <!-- ✅ Elegant full-screen loading overlay -->
   <div v-if="isLoading" class="loading-overlay">
-      <div class="loading-box">
-        <el-icon class="loading-icon"><Loading /></el-icon>
-        <p class="loading-text">AI 正在分析文件，请稍候...</p>
-      </div>
+    <div class="loading-box">
+      <el-icon class="loading-icon"><Loading /></el-icon>
+      <p class="loading-text">AI 正在分析文件，请稍候...</p>
+    </div>
   </div>
+
   <el-card class="job-title">
     <div class="title-container">
       <h2 class="my-title">工单创建</h2>
@@ -22,8 +24,7 @@
       <el-col :span="12" v-if="currentStep === 0">
         <div class="form-container">
           <el-form
-            ref="ruleFormRef"
-            style="max-width: 600px"
+            ref="step1FormRef"
             :model="ruleForm"
             :rules="rules"
             label-width="auto"
@@ -75,13 +76,13 @@
               />
             </el-form-item>
 
-           <el-form-item label="预期金额" prop="client_budget">
+            <el-form-item label="预期金额" prop="client_budget">
               <el-input v-model="ruleForm.client_budget" disabled />
-           </el-form-item>
+            </el-form-item>
 
             <el-form-item>
               <el-button type="primary" @click="goNextStep">Next</el-button>
-              <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
+              <el-button @click="resetForm(step1FormRef)">Reset</el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -91,8 +92,7 @@
       <el-col :span="12" v-if="currentStep === 1">
         <div class="table-container">
           <el-form
-            ref="ruleFormRef"
-            style="max-width: 600px"
+            ref="step2FormRef"
             :model="ruleForm"
             :rules="rules"
             label-width="auto"
@@ -117,8 +117,8 @@
             </el-form-item>
 
             <el-form-item>
-              <el-button type="primary" @click="submitForm(ruleFormRef)">Create</el-button>
-              <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
+              <el-button type="primary" @click="submitForm(step2FormRef)">Create</el-button>
+              <el-button @click="resetForm(step2FormRef)">Reset</el-button>
               <el-button @click="goPrevStep">Previous</el-button>
             </el-form-item>
           </el-form>
@@ -130,10 +130,9 @@
 
 <script lang="ts" setup>
 import { reactive, ref } from 'vue'
-import { ComponentSize, ElMessage, FormInstance, FormRules, UploadUserFile, ElLoading } from 'element-plus'
+import { ComponentSize, ElMessage, FormInstance, FormRules, UploadUserFile } from 'element-plus'
 import { jobCreate, fileUpload } from '@/api/user'
-import { UploadFilled } from '@element-plus/icons-vue'
-import { Loading } from '@element-plus/icons-vue'
+import { UploadFilled, Loading } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 
 interface RuleForm {
@@ -147,13 +146,16 @@ interface RuleForm {
 
 const router = useRouter()
 const formSize = ref<ComponentSize>('default')
-const ruleFormRef = ref<FormInstance>()
+const step1FormRef = ref<FormInstance>()
+const step2FormRef = ref<FormInstance>()
+const isLoading = ref(false)
+
 const ruleForm = ref<RuleForm>({
   file_id: -1,
   job_name: '',
-  job_type: 1,
+  job_type: 1, // 默认房地产
   job_intro: '此工单是关于',
-  client_budget: '1300-1500',
+  client_budget: '1300-1500', // 默认金额范围
   expected_time: '',
 })
 
@@ -166,7 +168,6 @@ const currentStep = ref(0)
 const rules = reactive<FormRules<RuleForm>>({
   job_name: [{ required: true, message: '请填写工单名', trigger: 'blur' }],
   job_type: [{ required: true, message: '请选择工单类型', trigger: 'blur' }],
-  client_budget: [{ required: true, message: '请填写预估金额', trigger: 'blur' }],
   expected_time: [{ required: true, message: '请选择预期完成时间', trigger: 'blur' }],
 })
 
@@ -201,30 +202,29 @@ const beforeUpload = async (file: File) => {
 
 // 提交表单 + 加载状态
 const submitForm = async (formEl: FormInstance | undefined) => {
-  if (!formEl) return;
+  if (!formEl) return
   await formEl.validate(async (valid) => {
-    if (!valid) return;
+    if (!valid) return
 
-    // ✅ Show your custom loading overlay
-    isLoading.value = true;
+    console.log('✅ Create button clicked') // debug confirmation
+    isLoading.value = true
 
     try {
-      const res = await jobCreate(ruleForm.value);
+      const res = await jobCreate(ruleForm.value)
       if (res.data.code === 200) {
-        ElMessage.success('工单创建成功！');
-        router.push('/jobManage');
+        ElMessage.success('工单创建成功！')
+        router.push('/jobManage')
       } else {
-        ElMessage.error(res.data.msg || '工单创建失败');
+        ElMessage.error(res.data.msg || '工单创建失败')
       }
     } catch (error) {
-      console.error(error);
-      ElMessage.error('请求失败，请稍后再试');
+      console.error(error)
+      ElMessage.error('请求失败，请稍后再试')
     } finally {
-      // ✅ Hide overlay once done (success or fail)
-      isLoading.value = false;
+      isLoading.value = false
     }
-  });
-};
+  })
+}
 
 const resetForm = (formEl: FormInstance | undefined) => {
   if (!formEl) return
@@ -279,6 +279,7 @@ const resetForm = (formEl: FormInstance | undefined) => {
   border-radius: 8px;
   width: 700px;
 }
+
 /* ✨ Beautiful AI-style loading overlay */
 .loading-overlay {
   position: fixed;
