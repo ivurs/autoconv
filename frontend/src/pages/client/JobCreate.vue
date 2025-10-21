@@ -21,7 +21,7 @@
 
     <el-row>
       <!-- Step 1 -->
-      <el-col :span="12" v-if="currentStep === 0">
+      <el-col :span="12" v-show="currentStep === 0">
         <div class="form-container">
           <el-form
             ref="ruleFormRef"
@@ -91,7 +91,7 @@
       </el-col>
 
       <!-- Step 2 -->
-      <el-col :span="12" v-if="currentStep === 1">
+      <el-col :span="12" v-show="currentStep === 1">
         <div class="table-container">
           <el-form
             ref="ruleFormRef"
@@ -151,6 +151,7 @@ const router = useRouter()
 const formSize = ref<ComponentSize>('default')
 const ruleFormRef = ref<FormInstance>()
 const isLoading = ref(false)
+
 const ruleForm = ref<RuleForm>({
   file_id: -1,
   job_name: '',
@@ -179,15 +180,24 @@ const beforeUpload = async (file: File) => {
     ElMessage.error('文件大小不应超过 100 MB')
     return false
   }
+
   uploadedFiles.value = [{ name: file.name, url: URL.createObjectURL(file) }]
   const formData = new FormData()
   formData.append('file', file)
+
   try {
     const res = await fileUpload(formData)
-    console.log('upload response', res.data)
-    // 根据后端返回结构调整
-    ruleForm.value.file_id = res.data.data.file_id || res.data.data.data
-    ElMessage.success('文件上传成功')
+    console.log('📂 上传返回:', res.data)
+
+    // ✅ Safely extract file_id for all backend styles
+    let fid = res?.data?.data?.file_id ?? res?.data?.data?.data ?? res?.data?.data ?? null
+    if (!fid || isNaN(fid)) {
+      ElMessage.error('文件上传返回的 file_id 无效')
+      return false
+    }
+
+    ruleForm.value.file_id = Number(fid)
+    ElMessage.success(`文件上传成功 (ID: ${fid})`)
   } catch (error) {
     console.error(error)
     ElMessage.error('文件上传失败')
@@ -195,25 +205,24 @@ const beforeUpload = async (file: File) => {
   return false
 }
 
-// 提交表单 + 加载状态
+// 提交表单
 const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
   await formEl.validate(async (valid) => {
     if (!valid) return
 
-    if (!ruleForm.value.expected_time) {
-      ElMessage.warning('请选择预期完成时间')
-      return
-    }
+    console.log('当前 file_id:', ruleForm.value.file_id)
     if (ruleForm.value.file_id <= 0) {
       ElMessage.warning('请先上传文件')
       return
     }
 
-    // 转换时间格式
-    ruleForm.value.expected_time = dayjs(ruleForm.value.expected_time).format('YYYY-MM-DD HH:mm:ss')
+    if (!ruleForm.value.expected_time) {
+      ElMessage.warning('请选择预期完成时间')
+      return
+    }
 
-    // 确保预算为数字
+    ruleForm.value.expected_time = dayjs(ruleForm.value.expected_time).format('YYYY-MM-DD HH:mm:ss')
     ruleForm.value.client_budget = parseFloat(ruleForm.value.client_budget).toString()
 
     isLoading.value = true
@@ -290,12 +299,12 @@ const resetForm = (formEl: FormInstance | undefined) => { if (formEl) formEl.res
   align-items: center;
   backdrop-filter: blur(6px);
   z-index: 9999;
+  animation: fadeIn 0.5s ease-in-out;
 }
 
 .loading-box {
   text-align: center;
   color: #fff;
-  animation: fadeIn 0.5s ease-in-out;
 }
 
 .loading-icon {
