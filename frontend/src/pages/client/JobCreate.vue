@@ -1,4 +1,13 @@
 <template>
+  <!-- 🌟 Loading overlay shown when AI is analyzing -->
+  <div v-if="isLoading" class="loading-overlay">
+    <div class="loading-box">
+      <el-icon class="loading-icon"><Loading /></el-icon>
+      <p class="loading-text">AI 正在分析文件，请稍候...</p>
+    </div>
+  </div>
+
+  <!-- 操作面板 -->
   <el-card class="job-title">
     <div class="title-container">
       <h2 class="my-title">工单创建</h2>
@@ -11,61 +20,63 @@
       <el-step title="Step 2"/>
     </el-steps>
 
+    <!-- 左侧表单 -->
     <el-row>
-      <!-- Step 1 -->
       <el-col :span="12" v-if="currentStep === 0">
         <div class="form-container">
           <el-form
-            ref="ruleFormRef"
-            style="max-width: 600px"
-            :model="ruleForm"
-            :rules="rules"
-            label-width="auto"
-            class="demo-ruleForm"
-            :size="formSize"
-            status-icon
+              ref="ruleFormRef"
+              style="max-width: 600px"
+              :model="ruleForm"
+              :rules="rules"
+              label-width="auto"
+              class="demo-ruleForm"
+              :size="formSize"
+              status-icon
           >
             <el-form-item label="工单标题" prop="job_name">
-              <el-input v-model="ruleForm.job_name" />
+              <el-input v-model="ruleForm.job_name"/>
             </el-form-item>
 
             <el-form-item label="工单种类" prop="job_type">
               <el-select v-model="ruleForm.job_type" placeholder="列表选择分类">
-                <el-option label="房地产" :value="1" />
-                <el-option label="婚姻" :value="2" />
-                <el-option label="公司法" :value="3" />
+                <el-option label="房地产" :value="1"/>
+                <el-option label="婚姻" :value="2"/>
+                <el-option label="公司法" :value="3"/>
               </el-select>
             </el-form-item>
 
             <el-form-item label="工单简介" prop="job_intro">
-              <el-input v-model="ruleForm.job_intro" />
+              <el-input v-model="ruleForm.job_intro"/>
             </el-form-item>
 
             <el-form-item label="上传文件" label-width="100px">
               <el-upload
-                drag
-                class="upload-demo"
-                show-file-list="false"
-                multiple
-                :before-upload="beforeUpload"
+                  drag
+                  class="upload-demo"
+                  show-file-list="false"
+                  multiple
+                  :auto-upload="false"
+                  action="#"
+                  :before-upload="beforeUpload"
               >
                 <el-icon class="el-icon--upload"><upload-filled/></el-icon>
                 <div class="el-upload__text">
                   拖拽文件到此处或 <em>点击上传</em>
                 </div>
                 <template #tip>
-                  <div class="el-upload__tip">仅支持 PDF / JPG / PNG 文件，小于 100 MB</div>
+                  <div class="el-upload__tip">支持 PDF / JPG / PNG 文件，最大 100 MB</div>
                 </template>
               </el-upload>
             </el-form-item>
 
             <el-form-item label="预期时间" prop="expected_time" required>
               <el-date-picker
-                v-model="ruleForm.expected_time"
-                type="datetime"
-                placeholder="选择预期时间"
-                style="width: 100%;"
-                :disabled-date="disabledDate"
+                  v-model="ruleForm.expected_time"
+                  type="datetime"
+                  placeholder="选择预期时间"
+                  style="width: 100%;"
+                  :disabled-date="disabledDate"
               />
             </el-form-item>
 
@@ -85,29 +96,28 @@
       <el-col :span="12" v-if="currentStep === 1">
         <div class="table-container">
           <el-form
-            ref="ruleFormRef"
-            style="max-width: 600px"
-            :model="ruleForm"
-            :rules="rules"
-            label-width="auto"
-            class="demo-ruleForm"
-            :size="formSize"
-            status-icon
+              ref="ruleFormRef"
+              :model="ruleForm"
+              :rules="rules"
+              label-width="auto"
+              class="demo-ruleForm"
+              :size="formSize"
+              status-icon
           >
             <el-form-item label="工单标题" prop="job_name">
-              <el-input v-model="ruleForm.job_name" />
+              <el-input v-model="ruleForm.job_name"/>
             </el-form-item>
 
             <el-form-item label="工单种类" prop="job_type">
               <el-select v-model="ruleForm.job_type" placeholder="列表选择分类">
-                <el-option label="房地产" :value="1" />
-                <el-option label="婚姻" :value="2" />
-                <el-option label="公司法" :value="3" />
+                <el-option label="房地产" :value="1"/>
+                <el-option label="婚姻" :value="2"/>
+                <el-option label="公司法" :value="3"/>
               </el-select>
             </el-form-item>
 
             <el-form-item label="工单简介" prop="job_intro">
-              <el-input v-model="ruleForm.job_intro" />
+              <el-input v-model="ruleForm.job_intro"/>
             </el-form-item>
 
             <el-form-item>
@@ -124,9 +134,9 @@
 
 <script lang="ts" setup>
 import { reactive, ref } from 'vue'
-import { ComponentSize, ElMessage, FormInstance, FormRules, UploadUserFile, ElLoading } from 'element-plus'
+import { ComponentSize, ElMessage, FormInstance, FormRules, UploadUserFile } from 'element-plus'
 import { jobCreate, fileUpload } from '@/api/user'
-import { UploadFilled } from '@element-plus/icons-vue'
+import { UploadFilled, Loading } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 
 interface RuleForm {
@@ -141,95 +151,75 @@ interface RuleForm {
 const router = useRouter()
 const formSize = ref<ComponentSize>('default')
 const ruleFormRef = ref<FormInstance>()
+const isLoading = ref(false)
 const ruleForm = ref<RuleForm>({
   file_id: -1,
   job_name: '',
-  job_type: 0,
+  job_type: 1,
   job_intro: '此工单是关于',
-  client_budget: '',
+  client_budget: '1300-1500',
   expected_time: '',
 })
 
 const uploadedFiles = ref<UploadUserFile[]>([])
-
-// 禁用过去的日期
 const disabledDate = (time: Date) => time.getTime() < Date.now()
-
 const currentStep = ref(0)
+
 const rules = reactive<FormRules<RuleForm>>({
   job_name: [{ required: true, message: '请填写工单名', trigger: 'blur' }],
   job_type: [{ required: true, message: '请选择工单类型', trigger: 'blur' }],
-  client_budget: [{ required: true, message: '请填写预估金额', trigger: 'blur' }],
   expected_time: [{ required: true, message: '请选择预期完成时间', trigger: 'blur' }],
 })
 
-const goNextStep = () => {
-  if (currentStep.value < 1) currentStep.value++
-}
-const goPrevStep = () => {
-  if (currentStep.value > 0) currentStep.value--
-}
+const goNextStep = () => { if (currentStep.value < 1) currentStep.value++ }
+const goPrevStep = () => { if (currentStep.value > 0) currentStep.value-- }
 
-// 上传文件
 const beforeUpload = async (file: File) => {
   if (file.size / 1024 / 1024 > 100) {
-    ElMessage.error('文件大小不应超过100 MB！')
+    ElMessage.error('文件大小不应超过 100 MB')
     return false
   }
-
   uploadedFiles.value = [{ name: file.name, url: URL.createObjectURL(file) }]
   const formData = new FormData()
   formData.append('file', file)
-
   try {
     const res = await fileUpload(formData)
-    ruleForm.value.file_id = res.data.data.data
+    ruleForm.value.file_id = res.data.data.file_id || res.data.data.data
     ElMessage.success('文件上传成功')
-  } catch (err) {
-    console.error(err)
+  } catch (error) {
+    console.error(error)
     ElMessage.error('文件上传失败')
   }
   return false
 }
 
-// 提交表单 + 加载状态
 const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
   await formEl.validate(async (valid) => {
     if (!valid) return
-
-    // 🌀 显示全屏加载遮罩
-    const loadingInstance = ElLoading.service({
-      lock: true,
-      text: '正在创建工单并分析文件，请稍候...',
-      background: 'rgba(0, 0, 0, 0.5)',
-    })
-
+    isLoading.value = true // show overlay
     try {
       const res = await jobCreate(ruleForm.value)
       if (res.data.code === 200) {
-        ElMessage.success('工单创建成功！')
+        ElMessage.success('提交成功！')
         router.push('/jobManage')
       } else {
-        ElMessage.error(res.data.msg || '工单创建失败')
+        ElMessage.error(res.data.msg || '提交失败')
       }
     } catch (error) {
       console.error(error)
       ElMessage.error('请求失败，请稍后再试')
     } finally {
-      // ✅ 关闭加载遮罩
-      loadingInstance.close()
+      isLoading.value = false // hide overlay
     }
   })
 }
 
-const resetForm = (formEl: FormInstance | undefined) => {
-  if (!formEl) return
-  formEl.resetFields()
-}
+const resetForm = (formEl: FormInstance | undefined) => { if (formEl) formEl.resetFields() }
 </script>
 
 <style scoped>
+/* Layout styling */
 .layout-container {
   display: flex;
   justify-content: center;
@@ -242,9 +232,9 @@ const resetForm = (formEl: FormInstance | undefined) => {
 }
 
 .job-title {
-  width: 66% !important;
+  width: 66%;
   margin: 0 auto;
-  background-color: #fff !important;
+  background-color: #fff;
   border-radius: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   padding: 1px;
@@ -252,14 +242,14 @@ const resetForm = (formEl: FormInstance | undefined) => {
 
 .my-title {
   text-align: center;
-  color: #1890ff !important;
+  color: #1890ff;
   margin: 0 auto;
   font-size: 24px;
   font-weight: bold;
 }
 
 .job-title + .layout-container {
-  margin-top: 30px !important;
+  margin-top: 30px;
 }
 
 .step-container {
@@ -268,12 +258,53 @@ const resetForm = (formEl: FormInstance | undefined) => {
   width: 150px;
 }
 
-.form-container,
-.table-container {
+.form-container, .table-container {
   background-color: #fff;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   width: 700px;
+}
+
+/* 🌟 Elegant AI-style loading overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: radial-gradient(circle at center, rgba(30,144,255,0.15), rgba(0,0,0,0.8));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  transition: opacity 0.4s ease-in-out;
+}
+
+.loading-box {
+  text-align: center;
+  color: #fff;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.loading-icon {
+  font-size: 60px;
+  color: #40a9ff;
+  animation: spin 1.5s linear infinite;
+}
+
+.loading-text {
+  font-size: 20px;
+  margin-top: 16px;
+  color: #e0f7ff;
+  letter-spacing: 1px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
