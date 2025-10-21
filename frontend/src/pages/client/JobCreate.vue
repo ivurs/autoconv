@@ -1,12 +1,4 @@
 <template>
-  <!-- ✅ Elegant full-screen loading overlay -->
-  <div v-if="isLoading" class="loading-overlay">
-    <div class="loading-box">
-      <el-icon class="loading-icon"><Loading /></el-icon>
-      <p class="loading-text">AI 正在分析文件，请稍候...</p>
-    </div>
-  </div>
-
   <el-card class="job-title">
     <div class="title-container">
       <h2 class="my-title">工单创建</h2>
@@ -24,7 +16,8 @@
       <el-col :span="12" v-if="currentStep === 0">
         <div class="form-container">
           <el-form
-            ref="step1FormRef"
+            ref="ruleFormRef"
+            style="max-width: 600px"
             :model="ruleForm"
             :rules="rules"
             label-width="auto"
@@ -77,12 +70,12 @@
             </el-form-item>
 
             <el-form-item label="预期金额" prop="client_budget">
-              <el-input v-model="ruleForm.client_budget" disabled />
+              <el-input v-model="ruleForm.client_budget" />
             </el-form-item>
 
             <el-form-item>
               <el-button type="primary" @click="goNextStep">Next</el-button>
-              <el-button @click="resetForm(step1FormRef)">Reset</el-button>
+              <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -92,7 +85,8 @@
       <el-col :span="12" v-if="currentStep === 1">
         <div class="table-container">
           <el-form
-            ref="step2FormRef"
+            ref="ruleFormRef"
+            style="max-width: 600px"
             :model="ruleForm"
             :rules="rules"
             label-width="auto"
@@ -117,8 +111,8 @@
             </el-form-item>
 
             <el-form-item>
-              <el-button type="primary" @click="submitForm(step2FormRef)">Create</el-button>
-              <el-button @click="resetForm(step2FormRef)">Reset</el-button>
+              <el-button type="primary" @click="submitForm(ruleFormRef)">Create</el-button>
+              <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
               <el-button @click="goPrevStep">Previous</el-button>
             </el-form-item>
           </el-form>
@@ -130,9 +124,9 @@
 
 <script lang="ts" setup>
 import { reactive, ref } from 'vue'
-import { ComponentSize, ElMessage, FormInstance, FormRules, UploadUserFile } from 'element-plus'
+import { ComponentSize, ElMessage, FormInstance, FormRules, UploadUserFile, ElLoading } from 'element-plus'
 import { jobCreate, fileUpload } from '@/api/user'
-import { UploadFilled, Loading } from '@element-plus/icons-vue'
+import { UploadFilled } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 
 interface RuleForm {
@@ -146,16 +140,13 @@ interface RuleForm {
 
 const router = useRouter()
 const formSize = ref<ComponentSize>('default')
-const step1FormRef = ref<FormInstance>()
-const step2FormRef = ref<FormInstance>()
-const isLoading = ref(false)
-
+const ruleFormRef = ref<FormInstance>()
 const ruleForm = ref<RuleForm>({
   file_id: -1,
   job_name: '',
-  job_type: 1, // 默认房地产
+  job_type: 0,
   job_intro: '此工单是关于',
-  client_budget: '1300-1500', // 默认金额范围
+  client_budget: '',
   expected_time: '',
 })
 
@@ -168,6 +159,7 @@ const currentStep = ref(0)
 const rules = reactive<FormRules<RuleForm>>({
   job_name: [{ required: true, message: '请填写工单名', trigger: 'blur' }],
   job_type: [{ required: true, message: '请选择工单类型', trigger: 'blur' }],
+  client_budget: [{ required: true, message: '请填写预估金额', trigger: 'blur' }],
   expected_time: [{ required: true, message: '请选择预期完成时间', trigger: 'blur' }],
 })
 
@@ -206,8 +198,12 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   await formEl.validate(async (valid) => {
     if (!valid) return
 
-    console.log('✅ Create button clicked') // debug confirmation
-    isLoading.value = true
+    // 🌀 显示全屏加载遮罩
+    const loadingInstance = ElLoading.service({
+      lock: true,
+      text: '正在创建工单并分析文件，请稍候...',
+      background: 'rgba(0, 0, 0, 0.5)',
+    })
 
     try {
       const res = await jobCreate(ruleForm.value)
@@ -221,7 +217,8 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       console.error(error)
       ElMessage.error('请求失败，请稍后再试')
     } finally {
-      isLoading.value = false
+      // ✅ 关闭加载遮罩
+      loadingInstance.close()
     }
   })
 }
@@ -278,50 +275,5 @@ const resetForm = (formEl: FormInstance | undefined) => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   width: 700px;
-}
-
-/* ✨ Beautiful AI-style loading overlay */
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: radial-gradient(circle at center, rgba(30, 144, 255, 0.1), rgba(0, 0, 0, 0.8));
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  backdrop-filter: blur(6px);
-  z-index: 9999;
-  transition: opacity 0.4s ease-in-out;
-}
-
-.loading-box {
-  text-align: center;
-  color: #fff;
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-.loading-icon {
-  font-size: 55px;
-  color: #40a9ff;
-  animation: spin 1.5s linear infinite;
-}
-
-.loading-text {
-  font-size: 20px;
-  margin-top: 14px;
-  letter-spacing: 1px;
-  color: #e0f7ff;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 </style>
