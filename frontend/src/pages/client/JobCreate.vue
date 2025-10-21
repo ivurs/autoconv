@@ -161,43 +161,28 @@ const goPrevStep = () => currentStep.value--
 
 /* ✅ File Upload Fix */
 const beforeUpload = async (file: File) => {
-  console.log('🚀 触发上传:', file.name)
-
+  //校验文件大小不超过100Mb
+  /*if (
+      file.type !== 'image/jpeg' &&
+      file.type !== 'image/png' &&
+      file.type !== 'image/gif'
+  ) {
+    ElMessage.error('头像图片应为Jpg/Jpeg/Png/Gif格式！')
+    return false
+  } else */
   if (file.size / 1024 / 1024 > 100) {
-    ElMessage.error('文件大小不应超过 100 MB')
+    ElMessage.error('头像大小不应超过100Mb！')
     return false
   }
 
-  const formData = new FormData()
-  formData.append('file', file)
+  uploadedFiles.value = [{name: file.name, url: URL.createObjectURL(file)}]
+  // uploadedFiles.value.push({ name: file.name, url: URL.createObjectURL(file) })
 
-  try {
-    const res = await fileUpload(formData)
-    console.log('📂 上传返回:', res.data)
-
-    // Auto-detect file_id from any structure
-    const keysToTry = [
-      res?.data?.data?.file_id,
-      res?.data?.data?.data,
-      res?.data?.data,
-      res?.data?.file_id,
-      res?.data,
-    ]
-    const fid = keysToTry.find(v => typeof v === 'number' || /^[0-9]+$/.test(v))
-
-    if (!fid) {
-      ElMessage.error('后端未返回有效 file_id，请检查返回结构')
-      return false
-    }
-
-    ruleForm.file_id = Number(fid)
-    console.log('✅ 已保存 file_id:', ruleForm.file_id)
-    ElMessage.success(`文件上传成功 (ID: ${ruleForm.file_id})`)
-  } catch (err) {
-    console.error('❌ 上传错误:', err)
-    ElMessage.error('文件上传失败，请稍后重试')
-  }
-
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fileUpload(formData)
+  ruleForm.value.file_id = res.data.data.data
+  console.log('beforeUpload', uploadedFiles.value)
   return false
 }
 
