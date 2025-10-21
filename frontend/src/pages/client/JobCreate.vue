@@ -1,18 +1,14 @@
 <template>
-  <!-- 操作面板 -->
   <el-card class="job-title">
     <div class="title-container">
       <h2 class="my-title">工单创建</h2>
     </div>
   </el-card>
   <div class="layout-container">
-
-
     <el-steps :active="currentStep" finish-status="success" direction="vertical" class="step-container">
       <el-step title="Step 1"/>
       <el-step title="Step 2"/>
     </el-steps>
-    <!-- 左侧表单 -->
     <el-row>
       <el-col :span="12" v-loading="isLoading" v-if="currentStep === 0">
         <div class="form-container">
@@ -39,17 +35,7 @@
             <el-form-item label="工单简介" prop="intro">
               <el-input v-model="ruleForm.job_intro"/>
             </el-form-item>
-            <!-- 上传文件 -->
             <el-form-item label="上传文件" label-width="100px">
-              <!--      <el-upload
-                        class="upload-demo"
-                        :file-list="uploadedFiles"
-                        :show-file-list="true"
-                        :auto-upload="false"
-                        :before-upload="beforeUpload"
-                    >
-                      <el-button size="small" type="primary">点击上传</el-button>
-                    </el-upload>-->
               <el-upload
                   drag
                   class="upload-demo"
@@ -67,26 +53,9 @@
                   <div class="el-upload__tip">
                     jpg/png files with a size less than 100Mb
                   </div>
-                  <!--                  <div v-for="(file,index) in uploadedFiles" :key="file.name" class="el-upload-list__item">-->
-                  <!--                    <span>{{ index + 1 }} . {{ file.name }}</span>-->
-                  <!--                    &lt;!&ndash;            <el-button type="text" @click="handleRemove(file)">Remove</el-button>&ndash;&gt;-->
-                  <!--                  </div>-->
                 </template>
               </el-upload>
             </el-form-item>
-            <!--    <el-form-item label="预期完成时间" required>
-                  <el-col :span="11">
-                    <el-form-item prop="date1">
-                      <el-date-picker
-                          v-model="ruleForm.date1"
-                          type="date"
-                          aria-label="Pick a date"
-                          placeholder="Pick a date"
-                          style="width: 100%"
-                      />
-                    </el-form-item>
-                  </el-col>
-                </el-form-item>-->
             <el-form-item label="预期时间" prop="expected_time" required>
               <el-date-picker
                   v-model="ruleForm.expected_time"
@@ -99,12 +68,6 @@
             <el-form-item label="预期金额" prop="client_budget">
               <el-input v-model="ruleForm.client_budget"/>
             </el-form-item>
-            <!--    <el-form-item label="Instant delivery" prop="delivery">
-                  <el-switch v-model="ruleForm.delivery" />
-                </el-form-item>
-                <el-form-item label="Activity form" prop="desc">
-                  <el-input v-model="ruleForm.desc" type="textarea" />
-                </el-form-item>-->
             <el-form-item>
               <el-button type="primary" @click="goNextStep">
                 Next
@@ -114,7 +77,6 @@
           </el-form>
         </div>
       </el-col>
-      <!-- 右侧表格 -->
       <el-col :span="12" v-if="currentStep === 1">
         <div class="table-container">
           <el-form
@@ -140,7 +102,7 @@
             <el-form-item label="工单简介" prop="intro">
               <el-input v-model="ruleForm.job_intro"/>
             </el-form-item>
-            <el-form-item label="progress analysis">
+            <el-form-item label="Progress Analysis">
               <el-progress
                 v-if="isLoading"
                 :percentage="progress"
@@ -155,7 +117,7 @@
                 Create
               </el-button>
               <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
-              <el-button @click="goPrevStep">Previous</el-button> <!-- 上一页按钮 -->
+              <el-button @click="goPrevStep">Previous</el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -165,11 +127,11 @@
 </template>
 
 <script lang="ts" setup>
-import {reactive, ref} from 'vue'
-import {ComponentSize, ElMessage, FormInstance, FormRules, UploadUserFile} from 'element-plus'
-import {jobCreate, fileUpload} from "@/api/user";
-import {UploadFilled} from '@element-plus/icons-vue'
-import {useRouter} from "vue-router";
+import { reactive, ref } from 'vue'
+import { ComponentSize, ElMessage, FormInstance, FormRules, UploadUserFile } from 'element-plus'
+import { jobCreate, fileUpload } from "@/api/user";
+import { UploadFilled } from '@element-plus/icons-vue'
+import { useRouter } from "vue-router";
 
 interface RuleForm {
   file_id: number
@@ -202,15 +164,14 @@ const disabledDate = (time: Date) => {
 const currentStep = ref(0);  // 控制当前步骤
 
 const rules = reactive<FormRules<RuleForm>>({
-  job_name: [{required: true, message: '请填写工单名', trigger: 'blur'},],
-  job_type: [{required: true, message: '请选择工单类型', trigger: 'blur',},],
-  client_budget: [{required: true, message: '请填写预估金额', trigger: 'blur'},],
-  expected_time: [{required: true, message: '请选择预期完成时间', trigger: 'blur'}], // 加入 expected_time 的验证规则
+  job_name: [{ required: true, message: '请填写工单名', trigger: 'blur' }],
+  job_type: [{ required: true, message: '请选择工单类型', trigger: 'blur' }],
+  client_budget: [{ required: true, message: '请填写预估金额', trigger: 'blur' }],
+  expected_time: [{ required: true, message: '请选择预期完成时间', trigger: 'blur' }],
 })
 
 const isLoading = ref(false); // 控制滚轮的显示
 const progress = ref(0); // 进度条的进度
-
 
 const goNextStep = () => {
   if (currentStep.value < 1) {
@@ -225,28 +186,27 @@ const goPrevStep = () => {
 };
 
 const beforeUpload = async (file: File) => {
-  //校验文件大小不超过100Mb
-  /*if (
-      file.type !== 'image/jpeg' &&
-      file.type !== 'image/png' &&
-      file.type !== 'image/gif'
-  ) {
-    ElMessage.error('头像图片应为Jpg/Jpeg/Png/Gif格式！')
-    return false
-  } else */
+  // 校验文件大小不超过100Mb
   if (file.size / 1024 / 1024 > 100) {
     ElMessage.error('头像大小不应超过100Mb！')
     return false
   }
 
-  uploadedFiles.value = [{name: file.name, url: URL.createObjectURL(file)}]
-  // uploadedFiles.value.push({ name: file.name, url: URL.createObjectURL(file) })
-
+  uploadedFiles.value = [{ name: file.name, url: URL.createObjectURL(file) }]
   const formData = new FormData();
   formData.append('file', file);
-  const res = await fileUpload(formData)
+  
+  // Call fileUpload with progress tracking
+  await fileUpload(formData, {
+    onUploadProgress: (progressEvent) => {
+      if (progressEvent.lengthComputable) {
+        progress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+      }
+    }
+  });
+
+  const res = await fileUpload(formData);
   ruleForm.value.file_id = res.data.data.data
-  console.log('beforeUpload', uploadedFiles.value)
   return false
 }
 
@@ -258,18 +218,17 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         isLoading.value = true; 
         progress.value = 0;
 
-        // 🧠 Simulate progress
-        for (let i = 0; i <= 100; i++) {
-          progress.value = i;
-          await new Promise(resolve => setTimeout(resolve, 20)); // speed control
-        }
-
-        console.log('ruleForm.value', ruleForm.value)
-        const res = await jobCreate(ruleForm.value);
+        // Call the job creation API and track progress
+        const res = await jobCreate(ruleForm.value, {
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.lengthComputable) {
+              progress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            }
+          }
+        });
 
         if (res.data.code === 200) {
           ElMessage.success('提交成功');
-          progress.value = 100;
           changePage('/jobManage');
         } else {
           ElMessage.error('提交失败');
@@ -278,11 +237,8 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         console.error('提交表单失败:', error);
         ElMessage.error('提交失败');
       } finally {
-        // small delay to show 100%
-        setTimeout(() => {
-          isLoading.value = false;
-          progress.value = 0;
-        }, 500);
+        isLoading.value = false;
+        progress.value = 0; // Reset progress after submission
       }
     }
   });
@@ -296,7 +252,6 @@ const resetForm = (formEl: FormInstance | undefined) => {
   if (!formEl) return
   formEl.resetFields()
 }
-
 </script>
 
 <style scoped>
@@ -342,13 +297,11 @@ const resetForm = (formEl: FormInstance | undefined) => {
   width: 150px; /* 可选：调整宽度 */
 }
 
-
 .form-container, .table-container {
   background-color: #fff; /* 可选：设置背景颜色 */
   padding: 20px; /* 内边距 */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* 可选：添加阴影 */
   border-radius: 8px; /* 可选：圆角 */
-  /*margin-right: 20px; !* 可选：右侧间距 *!*/
   width: 700px;
 }
 
@@ -358,6 +311,4 @@ const resetForm = (formEl: FormInstance | undefined) => {
   left: 50%;
   transform: translate(-50%, -50%);
 }
-
-
 </style>
