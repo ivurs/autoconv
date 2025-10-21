@@ -65,6 +65,10 @@
                 style="width: 100%; margin-top: 10px;"
                 :status="uploadProgress === 100 ? 'success' : undefined"
               />
+              <div v-if="ruleForm.file_id > 0" class="uploaded-file-info">
+              <el-icon><UploadFilled /></el-icon>
+              <span style="margin-left: 6px;">{{ uploadedFiles[0]?.name || '文件已上传' }}</span>
+              </div>
             </el-form-item>
 
             <el-form-item label="预期时间" prop="expected_time" required>
@@ -205,6 +209,7 @@ const beforeUpload = async (file: File) => {
     ruleForm.value.file_id = res.data.data.data
     uploadProgress.value = 100
     ElMessage.success('文件上传成功')
+    uploading.value = true
   } catch (err) {
     console.error(err)
     ElMessage.error('文件上传失败')
