@@ -67,15 +67,11 @@ export const jobCreate = async (params: any) => {
 };
 
 export const fileUpload = async (params: any, config: any = {}) => {
-  return myAxios.request({
-    url: "/file/upload",
-    method: "POST",
-    data: params,
+  return myAxios.post("/file/upload", params, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
-    // ✅ explicitly handle onUploadProgress if provided
-    onUploadProgress: config.onUploadProgress || undefined,
+    onUploadProgress: config?.onUploadProgress, // ✅ Pass progress only if provided
   });
 };
 
