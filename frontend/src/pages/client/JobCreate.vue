@@ -140,6 +140,16 @@
             <el-form-item label="工单简介" prop="intro">
               <el-input v-model="ruleForm.job_intro"/>
             </el-form-item>
+            <el-form-item label="progress analysis">
+              <el-progress
+                v-if="isLoading"
+                :percentage="progress"
+                :text-inside="true"
+                stroke-width="18"
+                status="success"
+                style="width: 100%"
+              />
+            </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="submitForm(ruleFormRef)">
                 Create
@@ -245,34 +255,39 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   await formEl.validate(async (valid) => {
     if (valid) {
       try {
+        isLoading.value = true; 
+        progress.value = 0;
 
-        isLoading.value = true; // 显示滚轮
-        console.log(isLoading.value)
-        // // 模拟一个进度条的过程
-        // for (let i = 0; i <= 100; i++) {
-        //   progress.value = i;
-        //   await new Promise(resolve => setTimeout(resolve, 10)); // 模拟延迟
-        // }
+        // 🧠 Simulate progress
+        for (let i = 0; i <= 100; i++) {
+          progress.value = i;
+          await new Promise(resolve => setTimeout(resolve, 20)); // speed control
+        }
 
         console.log('ruleForm.value', ruleForm.value)
         const res = await jobCreate(ruleForm.value);
-        // console.log('res:::::::::::',formData)
+
         if (res.data.code === 200) {
-          console.log('提交表单成功:', res.data);
           ElMessage.success('提交成功');
+          progress.value = 100;
           changePage('/jobManage');
         } else {
-          console.log("fail");
+          ElMessage.error('提交失败');
         }
       } catch (error) {
         console.error('提交表单失败:', error);
         ElMessage.error('提交失败');
       } finally {
-        isLoading.value = false; // 隐藏滚轮
+        // small delay to show 100%
+        setTimeout(() => {
+          isLoading.value = false;
+          progress.value = 0;
+        }, 500);
       }
     }
   });
-}
+};
+
 const changePage = (path: any) => {
   router.push(path);
 };
