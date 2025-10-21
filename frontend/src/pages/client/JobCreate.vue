@@ -37,7 +37,7 @@
             </el-form-item>
 
             <el-form-item label="工单种类" prop="job_type">
-              <el-select v-model="ruleForm.job_type" placeholder="列表选择分类">
+              <el-select v-model="ruleForm.job_type">
                 <el-option label="房地产" :value="1" />
                 <el-option label="婚姻" :value="2" />
                 <el-option label="公司法" :value="3" />
@@ -69,7 +69,7 @@
                 v-model="ruleForm.expected_time"
                 type="datetime"
                 placeholder="选择预期时间"
-                style="width: 100%;"
+                style="width: 100%"
                 :disabled-date="disabledDate"
               />
             </el-form-item>
@@ -159,8 +159,10 @@ const disabledDate = (time: Date) => time.getTime() < Date.now()
 const goNextStep = () => currentStep.value++
 const goPrevStep = () => currentStep.value--
 
-/* ✅ File Upload */
+/* ✅ File Upload Fix */
 const beforeUpload = async (file: File) => {
+  console.log('🚀 触发上传:', file.name)
+
   if (file.size / 1024 / 1024 > 100) {
     ElMessage.error('文件大小不应超过 100 MB')
     return false
@@ -173,40 +175,40 @@ const beforeUpload = async (file: File) => {
     const res = await fileUpload(formData)
     console.log('📂 上传返回:', res.data)
 
-    // ✅ Detect file_id automatically from any backend structure
-    const possibleIds = [
+    // Auto-detect file_id from any structure
+    const keysToTry = [
       res?.data?.data?.file_id,
       res?.data?.data?.data,
       res?.data?.data,
       res?.data?.file_id,
       res?.data,
     ]
-    const fid = possibleIds.find(v => typeof v === 'number' || /^[0-9]+$/.test(v))
+    const fid = keysToTry.find(v => typeof v === 'number' || /^[0-9]+$/.test(v))
 
     if (!fid) {
-      ElMessage.error('后端未返回有效 file_id，请检查接口返回')
+      ElMessage.error('后端未返回有效 file_id，请检查返回结构')
       return false
     }
 
     ruleForm.file_id = Number(fid)
-    console.log('✅ 保存 file_id:', ruleForm.file_id)
-    ElMessage.success(`文件上传成功 (ID: ${fid})`)
+    console.log('✅ 已保存 file_id:', ruleForm.file_id)
+    ElMessage.success(`文件上传成功 (ID: ${ruleForm.file_id})`)
   } catch (err) {
-    console.error(err)
-    ElMessage.error('文件上传失败')
+    console.error('❌ 上传错误:', err)
+    ElMessage.error('文件上传失败，请稍后重试')
   }
 
-  return false // stop default auto-upload
+  return false
 }
 
-/* ✅ Submit with Loading Overlay */
+/* ✅ Submit with overlay */
 const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
   await formEl.validate(async (valid) => {
     if (!valid) return
 
     console.log('🧩 提交 file_id:', ruleForm.file_id)
-    if (ruleForm.file_id <= 0) {
+    if (!ruleForm.file_id || ruleForm.file_id <= 0) {
       ElMessage.warning('请先上传文件')
       return
     }
@@ -223,7 +225,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         ElMessage.error(res.data.msg || '创建失败')
       }
     } catch (error) {
-      console.error(error)
+      console.error('❌ 创建错误:', error)
       ElMessage.error('请求失败，请稍后再试')
     } finally {
       isLoading.value = false
@@ -256,20 +258,13 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   font-size: 24px;
   font-weight: bold;
 }
-.step-container {
-  width: 150px;
-  height: 40vh;
-}
-.form-container,
-.table-container {
+.form-container, .table-container {
   background: #fff;
   padding: 20px;
   border-radius: 10px;
   width: 700px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
-
-/* 🌟 AI Loading Overlay */
 .loading-overlay {
   position: fixed;
   top: 0; left: 0;
@@ -281,25 +276,10 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   backdrop-filter: blur(5px);
   z-index: 9999;
 }
-.loading-box {
-  text-align: center;
-  color: white;
-}
-.loading-icon {
-  font-size: 60px;
-  color: #40a9ff;
-  animation: spin 1.5s linear infinite;
-}
-.loading-text {
-  margin-top: 15px;
-  font-size: 20px;
-  letter-spacing: 1px;
-  color: #e0f7ff;
-}
-@keyframes spin {
-  from { transform: rotate(0); }
-  to { transform: rotate(360deg); }
-}
+.loading-box { text-align: center; color: white; }
+.loading-icon { font-size: 60px; color: #40a9ff; animation: spin 1.5s linear infinite; }
+.loading-text { margin-top: 15px; font-size: 20px; color: #e0f7ff; letter-spacing: 1px; }
+@keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.4s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>
