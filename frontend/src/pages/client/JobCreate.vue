@@ -69,9 +69,9 @@
               />
             </el-form-item>
 
-           <el-form-item label="预期金额" prop="client_budget">
-              <el-input v-model="ruleForm.client_budget" disabled />
-           </el-form-item>
+            <el-form-item label="预期金额" prop="client_budget">
+              <el-input v-model="ruleForm.client_budget" />
+            </el-form-item>
 
             <el-form-item>
               <el-button type="primary" @click="goNextStep">Next</el-button>
@@ -144,9 +144,9 @@ const ruleFormRef = ref<FormInstance>()
 const ruleForm = ref<RuleForm>({
   file_id: -1,
   job_name: '',
-  job_type: 1,
+  job_type: 0,
   job_intro: '此工单是关于',
-  client_budget: '1300-1500',
+  client_budget: '',
   expected_time: '',
 })
 
