@@ -58,17 +58,13 @@
                 </template>
               </el-upload>
               <el-progress
-                v-if="uploading || uploadFinished"
+                v-if="uploading"
                 :percentage="uploadProgress"
                 :text-inside="true"
                 stroke-width="18"
                 style="width: 100%; margin-top: 10px;"
                 :status="uploadProgress === 100 ? 'success' : undefined"
               />
-              <div v-if="ruleForm.file_id > 0" class="uploaded-file-info">
-              <el-icon><UploadFilled /></el-icon>
-              <span style="margin-left: 6px;">{{ uploadedFiles[0]?.name || '文件已上传' }}</span>
-              </div>
             </el-form-item>
 
             <el-form-item label="预期时间" prop="expected_time" required>
@@ -165,7 +161,6 @@ const ruleForm = ref<RuleForm>({
 const uploadedFiles = ref<UploadUserFile[]>([])
 const uploading = ref(false)
 const uploadProgress = ref(0)
-const uploadFinished = ref(false)
 
 // 禁用过去的日期
 const disabledDate = (time: Date) => time.getTime() < Date.now()
@@ -199,23 +194,25 @@ const beforeUpload = async (file: File) => {
   formData.append('file', file)
 
   try {
-  const res = await fileUpload(formData, {
-    onUploadProgress: (progressEvent: any) => {
-      if (progressEvent.lengthComputable) {
-        uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-      }
-    },
-  })
+    const res = await fileUpload(formData, {
+      onUploadProgress: (progressEvent: any) => {
+        if (progressEvent.lengthComputable) {
+          uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+        }
+      },
+    })
 
-  ruleForm.value.file_id = res.data.data.data
-  uploadProgress.value = 100
-  uploadFinished.value = true // ✅ mark as done
-  ElMessage.success('文件上传成功')
-} catch (err) {
-  console.error(err)
-  ElMessage.error('文件上传失败')
-} finally {
-  uploading.value = false // ✅ stop "uploading" but don't hide bar
+    ruleForm.value.file_id = res.data.data.data
+    uploadProgress.value = 100
+    ElMessage.success('文件上传成功')
+  } catch (err) {
+    console.error(err)
+    ElMessage.error('文件上传失败')
+  } finally {
+    uploading.value = false
+  }
+
+  return false
 }
 
 // 提交表单 + 加载状态
