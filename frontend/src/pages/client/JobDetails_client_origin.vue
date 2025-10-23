@@ -14,10 +14,14 @@
           </div>
 
           <!-- ✅ Stage 2: PDF loading indicator -->
-          <div v-if="pdfLoading" class="loading-text">
-            <i class="el-icon-loading"></i>
-            正在加载PDF文件...
+          <div class="pdf-container">
+            <canvas ref="pdfCanvasRef" :style="{ width: '70%', height: '970px' }"></canvas>
+            <div v-if="pdfLoading" class="pdf-overlay">
+              <i class="el-icon-loading"></i>
+              <p>正在加载PDF文件...</p>
+            </div>
           </div>
+
 
           <!-- ✅ PDF Canvas -->
           <div v-else class="pdf-container">
@@ -274,11 +278,12 @@ const fetchJobDetails = async () => {
 
 // ---- lifecycle ----
 onMounted(async () => {
-  await fetchJobDetails();          // Stage 1: fetch metadata
-  pdfLoading.value = false;         // ✅ Allow canvas to appear
-  await nextTick();                 // ✅ Wait for DOM update
-  await renderPage(1);              // ✅ Render the PDF
+  await fetchJobDetails();          // Stage 1
+  await nextTick();                 // Wait for DOM
+  await renderPage(1);              // Stage 2
+  pdfLoading.value = false;         // Hide overlay when done
 });
+
 
 
 // ---- misc ----
@@ -346,5 +351,27 @@ const submitForm = async () => {
   z-index: 9999;
   color: #666;
   font-size: 18px;
+}
+.pdf-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #d6d6d6;
+}
+
+.pdf-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  color: #666;
 }
 </style>
