@@ -267,13 +267,24 @@ const loadPdfAsync = async (base64: string) => {
     const blob = base64ToBlob(base64);
     pdfUrl.value = URL.createObjectURL(blob);
 
+    // ✅ Wait until DOM (and canvas) actually exists before PDF rendering
+    await nextTick();
+
     const loadingTask = pdfjsLib.getDocument(pdfUrl.value);
     pdfDocRef.value = await loadingTask.promise;
     totalPages.value = pdfDocRef.value.numPages;
 
-    // ✅ wait for canvas to mount
+    // ✅ Wait again to ensure canvasRef resolved
     await nextTick();
-    await renderPage(currentPage.value);
+
+    // Verify canvas
+    if (!pdfCanvasRef.value) {
+      console.warn('Canvas not yet ready, retrying render...');
+      // retry once after small delay
+      setTimeout(() => renderPage(currentPage.value), 200);
+    } else {
+      await renderPage(currentPage.value);
+    }
   } catch (err) {
     console.error('加载PDF失败', err);
   } finally {
