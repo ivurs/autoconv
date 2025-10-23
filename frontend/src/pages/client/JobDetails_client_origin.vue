@@ -161,7 +161,8 @@ import myAxios from '@/request';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // ✅ Worker setup (keep same)
-pdfjsLib.GlobalWorkerOptions.workerSrc = require('pdfjs-dist/build/pdf.worker.entry');
+import pdfWorker from 'pdfjs-dist/build/pdf.worker?url';
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 // ---- reactive state ----
 const jobInfo = ref({});
@@ -204,19 +205,25 @@ const base64ToBlob = (code: string) => {
 
 // ---- core functions ----
 const renderPage = async (pageNum: number) => {
-  if (!pdfUrl.value || !pdfCanvasRef.value) return;
+  console.log("📘 renderPage called", pageNum);
+  if (!pdfUrl.value) return console.error("❌ pdfUrl is null");
+  if (!pdfCanvasRef.value) return console.error("❌ canvas ref missing");
+
   const loadingTask = pdfjsLib.getDocument(pdfUrl.value);
   const pdfDoc = await loadingTask.promise;
-  pdfDocRef.value = pdfDoc;
-  totalPages.value = pdfDoc.numPages;
+  console.log("✅ pdf loaded, pages:", pdfDoc.numPages);
 
   const page = await pdfDoc.getPage(pageNum);
-  const canvas = pdfCanvasRef.value as HTMLCanvasElement;
-  const ctx = canvas.getContext('2d')!;
+  console.log("✅ got page", pageNum);
+
+  const canvas = pdfCanvasRef.value!;
+  const ctx = canvas.getContext("2d")!;
   const viewport = page.getViewport({ scale: 1 });
   canvas.height = viewport.height;
   canvas.width = viewport.width;
+
   await page.render({ canvasContext: ctx, viewport }).promise;
+  console.log("✅ page rendered");
   pdfLoading.value = false;
 };
 
@@ -269,6 +276,8 @@ const fetchJobDetails = async () => {
 onMounted(async () => {
   await fetchJobDetails();
   await nextTick();          // wait for canvas to exist
+  pdfUrl.value = 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf';
+  await renderPage(1);
   if (pdfUrl.value) {
     await renderPage(currentPage.value); // same timing as original ✅
   }
