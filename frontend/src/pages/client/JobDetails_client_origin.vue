@@ -266,9 +266,13 @@ const loadPdfAsync = async (base64: string) => {
   try {
     const blob = base64ToBlob(base64);
     pdfUrl.value = URL.createObjectURL(blob);
+
     const loadingTask = pdfjsLib.getDocument(pdfUrl.value);
     pdfDocRef.value = await loadingTask.promise;
     totalPages.value = pdfDocRef.value.numPages;
+
+    // ✅ wait for canvas to mount
+    await nextTick();
     await renderPage(currentPage.value);
   } catch (err) {
     console.error('加载PDF失败', err);
@@ -277,13 +281,19 @@ const loadPdfAsync = async (base64: string) => {
   }
 };
 
+
 onMounted(async () => {
   await fetchJobDetails();
 });
 
 watch(pdfUrl, async (newUrl) => {
-  if (newUrl && pdfDocRef.value) await renderPage(currentPage.value);
+  if (newUrl && pdfDocRef.value) {
+    await nextTick();
+    await renderPage(currentPage.value);
+    pdfLoading.value = false; // ✅ ensure hides spinner after render
+  }
 });
+
 
 const submitForm = async () => {
   const postData = {
