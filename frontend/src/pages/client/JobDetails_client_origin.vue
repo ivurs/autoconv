@@ -1,5 +1,10 @@
 <template>
   <div class="job-content">
+    <!-- ✅ overlay floats on top instead of hiding the canvas -->
+    <div v-if="loading" class="overlay">
+      <i class="el-icon-loading"></i>
+      <p>正在加载工单详情...</p>
+    </div>
     <el-row :gutter="30">
       <el-col :span="11">
         <!-- 修改PDF展示部分 -->
@@ -428,5 +433,21 @@ const changePage = (path: any) => {
   color: #409eff;
   cursor: pointer;
   text-decoration: underline;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #666;
+  font-size: 18px;
 }
 </style>
