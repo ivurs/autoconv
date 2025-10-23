@@ -274,14 +274,12 @@ const fetchJobDetails = async () => {
 
 // ---- lifecycle ----
 onMounted(async () => {
-  await fetchJobDetails();
-  await nextTick();          // wait for canvas to exist
-  pdfUrl.value = 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf';
-  await renderPage(1);
-  if (pdfUrl.value) {
-    await renderPage(currentPage.value); // same timing as original ✅
-  }
+  await fetchJobDetails();          // Stage 1: fetch metadata
+  pdfLoading.value = false;         // ✅ Allow canvas to appear
+  await nextTick();                 // ✅ Wait for DOM update
+  await renderPage(1);              // ✅ Render the PDF
 });
+
 
 // ---- misc ----
 const toggleExpand = (row: any, field: string) => (row[field] = !row[field]);
