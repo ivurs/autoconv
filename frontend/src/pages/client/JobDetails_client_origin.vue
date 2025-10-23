@@ -159,80 +159,82 @@ import { ElMessage } from 'element-plus';
 import dayjs from 'dayjs';
 import myAxios from '@/request';
 import * as pdfjsLib from 'pdfjs-dist';
+
+// ✅ Worker setup (keep same)
 pdfjsLib.GlobalWorkerOptions.workerSrc = require('pdfjs-dist/build/pdf.worker.entry');
 
-const jobInfo = ref<any>({});
-const loading = ref(true);         // ✅ Stage 1 loading flag
-const pdfLoading = ref(true);      // ✅ Stage 2 loading flag
+// ---- reactive state ----
+const jobInfo = ref({});
+const loading = ref(true);       // Stage 1 loading overlay
+const pdfLoading = ref(true);    // PDF indicator
 const error = ref(null);
+
 const pdfUrl = ref<string | null>(null);
 const pdfCanvasRef = ref<HTMLCanvasElement | null>(null);
-const pdfDocRef = ref<any>(null);  // cache PDF doc
 const currentPage = ref(1);
 const totalPages = ref(0);
-const tableCurrentPage = ref(1);
-const size = ref('small');
-const activeNames = ref(['1', '2']);
-const pageSize = 5;
-const pdfBase64 = ref<string | null>(null);
+const pdfDocRef = ref<any>(null);
 
 const tableData = ref<any[]>([]);
+const tableCurrentPage = ref(1);
+const pageSize = 5;
 const route = useRoute();
 const router = useRouter();
+const size = ref('small');
+const activeNames = ref(['1', '2']);
 
-const jobTypeMapping: Record<number, string> = {
-  1: '房地产',
-  2: '婚姻',
-  3: '公司法'
-};
+// ---- computed ----
+const jobTypeMapping: Record<number, string> = { 1: '房地产', 2: '婚姻', 3: '公司法' };
 const jobTypeName = computed(() => jobTypeMapping[jobInfo.value.jobType] || '未知类型');
-
 const paginatedData = computed(() => {
   const start = (tableCurrentPage.value - 1) * pageSize;
   return tableData.value.slice(start, start + pageSize);
 });
 
-const toggleExpand = (row: any, field: string) => (row[field] = !row[field]);
-const handleTablePageChange = (page: number) => (tableCurrentPage.value = page);
-
-const handlePdfPageChange = async (page: number) => {
-  currentPage.value = page;
-  await renderPage(page);
-};
-
-const renderPage = async (pageNum: number) => {
-  if (!pdfDocRef.value || !pdfCanvasRef.value) return;
-  const page = await pdfDocRef.value.getPage(pageNum);
-  const canvas = pdfCanvasRef.value;
-  const context = canvas.getContext('2d')!;
-  const viewport = page.getViewport({ scale: 1 });
-  canvas.height = viewport.height;
-  canvas.width = viewport.width;
-  await page.render({ canvasContext: context, viewport }).promise;
-};
-
-const locatePdfPage = async (pageNum: number) => {
-  currentPage.value = pageNum;
-  await renderPage(pageNum);
-};
-
-// ✅ Base64 → Blob
+// ---- helpers ----
 const base64ToBlob = (code: string) => {
   if (code.startsWith('data:application/pdf;base64,')) {
     code = code.replace('data:application/pdf;base64,', '');
   }
-  const raw = window.atob(code);
+  const raw = atob(code);
   const uInt8Array = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; ++i) uInt8Array[i] = raw.charCodeAt(i);
   return new Blob([uInt8Array], { type: 'application/pdf' });
 };
 
-// ✅ Stage 1: Fetch meta + table
+// ---- core functions ----
+const renderPage = async (pageNum: number) => {
+  if (!pdfUrl.value || !pdfCanvasRef.value) return;
+  const loadingTask = pdfjsLib.getDocument(pdfUrl.value);
+  const pdfDoc = await loadingTask.promise;
+  pdfDocRef.value = pdfDoc;
+  totalPages.value = pdfDoc.numPages;
+
+  const page = await pdfDoc.getPage(pageNum);
+  const canvas = pdfCanvasRef.value as HTMLCanvasElement;
+  const ctx = canvas.getContext('2d')!;
+  const viewport = page.getViewport({ scale: 1 });
+  canvas.height = viewport.height;
+  canvas.width = viewport.width;
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  pdfLoading.value = false;
+};
+
+const handlePdfPageChange = (p: number) => {
+  currentPage.value = p;
+  renderPage(p);
+};
+
+const handleTablePageChange = (p: number) => {
+  tableCurrentPage.value = p;
+};
+
+// ---- fetch & mount ----
 const fetchJobDetails = async () => {
   try {
     const id = route.params.id;
-    const response = await myAxios.get(`/job/details?id=${id}`);
-    const data = response.data.data;
+    const res = await myAxios.get(`/job/details?id=${id}`);
+    const data = res.data.data;
 
     jobInfo.value = {
       jobId: data.job_id,
@@ -245,103 +247,51 @@ const fetchJobDetails = async () => {
       path: data.path,
     };
 
-    tableData.value = data.paragraph.map((_, index) => ({
-      paragraph: data.paragraph[index],
-      paragraphClean: data.paragraph_clean[index],
-      modelPredictDetails: data.model_predict_details[index],
-      modelPredictLabels: data.model_predict_labels[index],
-      pageNum: data.page_num[index],
+    tableData.value = data.paragraph.map((_: any, i: number) => ({
+      paragraph: data.paragraph[i],
+      paragraphClean: data.paragraph_clean[i],
+      modelPredictDetails: data.model_predict_details[i],
+      modelPredictLabels: data.model_predict_labels[i],
+      pageNum: data.page_num[i],
     }));
 
-    // ✅ store base64 PDF for Stage 2
-    pdfBase64.value = data.file_content;
-
-  } catch (err: any) {
-    error.value = err.message || '获取工单信息失败';
+    // ✅ exactly like original: create pdfUrl immediately
+    const blob = base64ToBlob(data.file_content);
+    pdfUrl.value = URL.createObjectURL(blob);
+  } catch (e: any) {
+    error.value = e.message;
   } finally {
     loading.value = false;
   }
 };
 
-// ✅ Stage 2: Async PDF loader
-const loadPdfAsync = async () => {
-  try {
-    if (!pdfBase64.value) return;
-
-    const blob = base64ToBlob(pdfBase64.value);
-    pdfUrl.value = URL.createObjectURL(blob);
-
-    // Wait for Vue to render DOM (canvas must exist)
-    await nextTick();
-
-    // ✅ Wait until pdfCanvasRef.value is non-null
-    let retry = 0;
-    while (!pdfCanvasRef.value && retry < 5) {
-      console.warn("Canvas not ready yet, retrying...");
-      await new Promise(res => setTimeout(res, 100));
-      retry++;
-    }
-
-    if (!pdfCanvasRef.value) {
-      throw new Error("Canvas element not found after retries");
-    }
-
-    // Load and render PDF
-    const loadingTask = pdfjsLib.getDocument(pdfUrl.value);
-    const pdfDoc = await loadingTask.promise;
-    pdfDocRef.value = pdfDoc;
-    totalPages.value = pdfDoc.numPages;
-
-    const page = await pdfDoc.getPage(currentPage.value);
-    const canvas = pdfCanvasRef.value as HTMLCanvasElement;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error("Failed to get 2D context");
-
-    const viewport = page.getViewport({ scale: 1 });
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-
-    await page.render({ canvasContext: context, viewport }).promise;
-    console.log(`PDF rendered successfully ✅`);
-  } catch (err) {
-    console.error('加载PDF失败:', err);
-  } finally {
-    pdfLoading.value = false;
-  }
-};
-
-
-
+// ---- lifecycle ----
 onMounted(async () => {
-  await fetchJobDetails();        // Stage 1: get data
-  await nextTick();               // ensure table + canvas exist
-  await loadPdfAsync();           // Stage 2: load + render PDF
-});
-
-watch(pdfUrl, async (newUrl) => {
-  if (newUrl && pdfDocRef.value) {
-    await nextTick();
-    await renderPage(currentPage.value);
-    pdfLoading.value = false; // ✅ ensure hides spinner after render
+  await fetchJobDetails();
+  await nextTick();          // wait for canvas to exist
+  if (pdfUrl.value) {
+    await renderPage(currentPage.value); // same timing as original ✅
   }
 });
 
-
+// ---- misc ----
+const toggleExpand = (row: any, field: string) => (row[field] = !row[field]);
+const locatePdfPage = (p: number) => {
+  currentPage.value = p;
+  renderPage(p);
+};
 const submitForm = async () => {
-  const postData = {
-    job_id: parseInt(Array.isArray(route.params.id) ? route.params.id[0] : route.params.id, 10)
-  };
   try {
-    const response = await myAxios.post('/job/acceptJob', postData);
+    const id = parseInt(Array.isArray(route.params.id) ? route.params.id[0] : route.params.id, 10);
+    await myAxios.post('/job/acceptJob', { job_id: id });
     ElMessage.success('提交成功');
-    changePage('/newJobListForClient');
-  } catch (error) {
+    router.push('/newJobListForClient');
+  } catch {
     ElMessage.error('提交失败');
   }
 };
-
-const changePage = (path: string) => router.push(path);
 </script>
+
 
 <style scoped>
 .center-title {
