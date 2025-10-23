@@ -174,6 +174,7 @@ const tableCurrentPage = ref(1);
 const size = ref('small');
 const activeNames = ref(['1', '2']);
 const pageSize = 5;
+const pdfBase64 = ref<string | null>(null);
 
 const tableData = ref<any[]>([]);
 const route = useRoute();
@@ -241,19 +242,20 @@ const fetchJobDetails = async () => {
       clientBudget: data.client_budget,
       issueDate: dayjs(data.issue_date).format('YYYY-MM-DD HH:mm:ss'),
       fileName: data.file_name,
-      path: data.path
+      path: data.path,
     };
 
-    tableData.value = data.paragraph.map((_: any, index: number) => ({
+    tableData.value = data.paragraph.map((_, index) => ({
       paragraph: data.paragraph[index],
       paragraphClean: data.paragraph_clean[index],
       modelPredictDetails: data.model_predict_details[index],
       modelPredictLabels: data.model_predict_labels[index],
-      pageNum: data.page_num[index]
+      pageNum: data.page_num[index],
     }));
 
-    // ✅ Stage 2: Load PDF asynchronously (non-blocking)
-    setTimeout(() => loadPdfAsync(data.file_content), 0);
+    // ✅ store base64 PDF for Stage 2
+    pdfBase64.value = data.file_content;
+
   } catch (err: any) {
     error.value = err.message || '获取工单信息失败';
   } finally {
@@ -262,31 +264,30 @@ const fetchJobDetails = async () => {
 };
 
 // ✅ Stage 2: Async PDF loader
-const loadPdfAsync = async (base64: string) => {
+const loadPdfAsync = async () => {
   try {
-    const blob = base64ToBlob(base64);
+    if (!pdfBase64.value) return;
+    const blob = base64ToBlob(pdfBase64.value);
     pdfUrl.value = URL.createObjectURL(blob);
 
-    // ✅ Wait until DOM (and canvas) actually exists before PDF rendering
+    // Wait for the <canvas> DOM to be ready
     await nextTick();
 
     const loadingTask = pdfjsLib.getDocument(pdfUrl.value);
-    pdfDocRef.value = await loadingTask.promise;
-    totalPages.value = pdfDocRef.value.numPages;
+    const pdfDoc = await loadingTask.promise;
+    pdfDocRef.value = pdfDoc;
+    totalPages.value = pdfDoc.numPages;
 
-    // ✅ Wait again to ensure canvasRef resolved
-    await nextTick();
-
-    // Verify canvas
-    if (!pdfCanvasRef.value) {
-      console.warn('Canvas not yet ready, retrying render...');
-      // retry once after small delay
-      setTimeout(() => renderPage(currentPage.value), 200);
-    } else {
-      await renderPage(currentPage.value);
-    }
+    const page = await pdfDoc.getPage(currentPage.value);
+    const canvas = pdfCanvasRef.value as HTMLCanvasElement;
+    const context = canvas.getContext('2d');
+    const viewport = page.getViewport({ scale: 1 });
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    await page.render({ canvasContext: context, viewport }).promise;
+    console.log(`PDF rendered successfully ✅`);
   } catch (err) {
-    console.error('加载PDF失败', err);
+    console.error('加载PDF失败:', err);
   } finally {
     pdfLoading.value = false;
   }
@@ -294,7 +295,9 @@ const loadPdfAsync = async (base64: string) => {
 
 
 onMounted(async () => {
-  await fetchJobDetails();
+  await fetchJobDetails();        // Stage 1: get data
+  await nextTick();               // ensure table + canvas exist
+  await loadPdfAsync();           // Stage 2: load + render PDF
 });
 
 watch(pdfUrl, async (newUrl) => {
