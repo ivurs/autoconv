@@ -267,12 +267,26 @@ const fetchJobDetails = async () => {
 const loadPdfAsync = async () => {
   try {
     if (!pdfBase64.value) return;
+
     const blob = base64ToBlob(pdfBase64.value);
     pdfUrl.value = URL.createObjectURL(blob);
 
-    // Wait for the <canvas> DOM to be ready
+    // Wait for Vue to render DOM (canvas must exist)
     await nextTick();
 
+    // ✅ Wait until pdfCanvasRef.value is non-null
+    let retry = 0;
+    while (!pdfCanvasRef.value && retry < 5) {
+      console.warn("Canvas not ready yet, retrying...");
+      await new Promise(res => setTimeout(res, 100));
+      retry++;
+    }
+
+    if (!pdfCanvasRef.value) {
+      throw new Error("Canvas element not found after retries");
+    }
+
+    // Load and render PDF
     const loadingTask = pdfjsLib.getDocument(pdfUrl.value);
     const pdfDoc = await loadingTask.promise;
     pdfDocRef.value = pdfDoc;
@@ -281,9 +295,12 @@ const loadPdfAsync = async () => {
     const page = await pdfDoc.getPage(currentPage.value);
     const canvas = pdfCanvasRef.value as HTMLCanvasElement;
     const context = canvas.getContext('2d');
+    if (!context) throw new Error("Failed to get 2D context");
+
     const viewport = page.getViewport({ scale: 1 });
     canvas.height = viewport.height;
     canvas.width = viewport.width;
+
     await page.render({ canvasContext: context, viewport }).promise;
     console.log(`PDF rendered successfully ✅`);
   } catch (err) {
@@ -292,6 +309,7 @@ const loadPdfAsync = async () => {
     pdfLoading.value = false;
   }
 };
+
 
 
 onMounted(async () => {
