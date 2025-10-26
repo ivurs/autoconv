@@ -77,43 +77,6 @@
                   </el-button>
                 </template>
               </el-table-column>
-              <el-table-column prop="paragraphClean" label="段落清理后">
-                <template #default="scope">
-    <span>
-      {{
-        scope.row.paragraphClean.length > 20 && !scope.row.expandedClean
-            ? scope.row.paragraphClean.slice(0, 20) + '...'
-            : scope.row.paragraphClean
-      }}
-    </span>
-                  <el-button
-                      v-if="scope.row.paragraphClean.length > 20"
-                      type="text"
-                      @click="toggleExpand(scope.row, 'expandedClean')"
-                  >
-                    {{ scope.row.expandedClean ? '收起' : '展开' }}
-                  </el-button>
-                </template>
-              </el-table-column>
-
-              <el-table-column prop="modelPredictDetails" label="模型预测详情">
-                <template #default="scope">
-    <span>
-      {{
-        scope.row.modelPredictDetails.length > 20 && !scope.row.expandedDetails
-            ? scope.row.modelPredictDetails.slice(0, 20) + '...'
-            : scope.row.modelPredictDetails
-      }}
-    </span>
-                  <el-button
-                      v-if="scope.row.modelPredictDetails.length > 20"
-                      type="text"
-                      @click="toggleExpand(scope.row, 'expandedDetails')"
-                  >
-                    {{ scope.row.expandedDetails ? '收起' : '展开' }}
-                  </el-button>
-                </template>
-              </el-table-column>
 
               <el-table-column prop="modelPredictLabels" label="模型预测标签">
                 <template #default="scope">
@@ -143,6 +106,26 @@
             />
           </el-collapse-item>
         </el-collapse>
+
+                <!-- 显示model预测标签 -->
+                <div class="all-labels-container">
+          <div class="label-text-box" v-if="allModelPredictLabels">
+            <span>
+              {{
+                allModelPredictLabels.length > 200 && !expandedAllLabels
+                    ? allModelPredictLabels.slice(0, 200) + '...'
+                    : allModelPredictLabels
+              }}
+            </span>
+            <el-button
+                v-if="allModelPredictLabels.length > 200"
+                type="text"
+                @click="toggleExpandAllLabels"
+            >
+              {{ expandedAllLabels ? '收起' : '展开' }}
+            </el-button>
+          </div>
+        </div>
         <!-- 添加确认和取消按钮 -->
         <div class="button-group">
           <el-button type="primary" @click="submitForm">确认</el-button>
@@ -282,6 +265,8 @@ const base64ToBlob = (code: string) => {
   return new Blob([uInt8Array], { type: 'application/pdf' });
 };
 
+
+const allModelPredictLabels = ref('');
 const fetchJobDetails = async () => {
   try {
     const id = route.params.id;
@@ -318,6 +303,20 @@ const fetchJobDetails = async () => {
       pageNum: data.page_num[index],
     }));
 
+       // // 合并所有 modelPredictLabels
+       const labelsToSend = tableData.value
+      .reduce((acc, row) => {
+        if (row.modelPredictLabels && !acc.includes(row.modelPredictLabels)) {
+          acc.push(row.modelPredictLabels);
+        }
+        return acc;
+      }, [])
+      .join(' | ')
+      .trim();
+    // allModelPredictLabels.value = labelsToSend;
+    const labelsResponse = await myAxios.post('/job/getModelPredictLabels', { labels: labelsToSend });
+    allModelPredictLabels.value = labelsResponse.data.labels;
+
     const blob = base64ToBlob(data.file_content);
     console.log('Generated Blob:', blob); // 打印 Blob 对象
     pdfUrl.value = URL.createObjectURL(blob);
@@ -330,6 +329,7 @@ const fetchJobDetails = async () => {
     loading.value = false;
   }
 };
+
 
 onMounted(async () => {
   await fetchJobDetails(); // 等待工单详情加载完成
@@ -439,5 +439,14 @@ const changePage = (path: any) => {
   align-items: center;
   color: #666;
   font-size: 18px;
+}
+
+.all-labels-container {
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  white-space: pre-wrap; /* 使文本换行显示 */
 }
 </style>

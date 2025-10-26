@@ -79,43 +79,6 @@
                   </el-button>
                 </template>
               </el-table-column>
-              <el-table-column prop="paragraphClean" label="段落清理后">
-                <template #default="scope">
-    <span>
-      {{
-        scope.row.paragraphClean.length > 20 && !scope.row.expandedClean
-            ? scope.row.paragraphClean.slice(0, 20) + '...'
-            : scope.row.paragraphClean
-      }}
-    </span>
-                  <el-button
-                      v-if="scope.row.paragraphClean.length > 20"
-                      type="text"
-                      @click="toggleExpand(scope.row, 'expandedClean')"
-                  >
-                    {{ scope.row.expandedClean ? '收起' : '展开' }}
-                  </el-button>
-                </template>
-              </el-table-column>
-
-              <el-table-column prop="modelPredictDetails" label="模型预测详情">
-                <template #default="scope">
-    <span>
-      {{
-        scope.row.modelPredictDetails.length > 20 && !scope.row.expandedDetails
-            ? scope.row.modelPredictDetails.slice(0, 20) + '...'
-            : scope.row.modelPredictDetails
-      }}
-    </span>
-                  <el-button
-                      v-if="scope.row.modelPredictDetails.length > 20"
-                      type="text"
-                      @click="toggleExpand(scope.row, 'expandedDetails')"
-                  >
-                    {{ scope.row.expandedDetails ? '收起' : '展开' }}
-                  </el-button>
-                </template>
-              </el-table-column>
 
               <el-table-column prop="modelPredictLabels" label="模型预测标签">
                 <template #default="scope">

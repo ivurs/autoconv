@@ -1,6 +1,6 @@
 import base64
 from datetime import datetime
-from typing import Optional
+from typing import Optional,List
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
@@ -246,3 +246,26 @@ async def delete_new_job_for_client_api(id: int, db: Session = Depends(get_db), 
     # 调用 job_service 中的删除方法
     result = delete_new_job_for_client(id, user_id, db)
     return ResultUtils.success(result)
+
+    # 定义请求体的数据模型
+class LabelsRequest(BaseModel):
+    labels: str
+# 定义响应体的数据模型
+class LabelsResponse(BaseModel):
+    labels: str
+# 模拟的预测标签数据
+def get_model_predict_labels(labels: List[str]):
+    # 这里可以替换为实际的模型预测逻辑
+    # 例如：调用模型进行预测，返回预测的标签
+    # 为了示例，我们简单地返回一个固定的标签字符串
+    return "模型预测标签1 | 模型预测标签2 | 模型预测标签3"
+@router.post("/getModelPredictLabels", response_model=LabelsResponse)
+async def get_model_predict_labels_endpoint(request: LabelsRequest):
+    try:
+        # 将接收到的标签字符串拆分成列表
+        labels_list = request.labels.split(' | ')
+        # 调用预测标签函数
+        new_labels = get_model_predict_labels(labels_list)
+        return LabelsResponse(labels=new_labels)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
