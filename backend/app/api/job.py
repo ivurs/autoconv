@@ -18,6 +18,8 @@ from app.services.job_service import list_raw_job_for_client, list_new_job_for_c
     accept_job, delete_origin_job_for_client, delete_new_job_for_client
 from app.core.database import get_db
 from app.utils.result_utils import ResultUtils
+import os
+import json
 
 router = APIRouter()
 
@@ -253,17 +255,48 @@ class LabelsRequest(BaseModel):
 # 定义响应体的数据模型
 class LabelsResponse(BaseModel):
     labels: str
+
+
 # 模拟的预测标签数据
 def get_model_predict_labels(labels: List[str]):
     # 这里可以替换为实际的模型预测逻辑
+    # 定义一个空字符串用于存储结果
+    result = ""
+    # 读取 JSON 文件
+    try:
+        # 获取当前文件的绝对路径
+        current_file_path = os.path.abspath(__file__)
+        # 获取当前文件的目录路径
+        current_directory_path = os.path.dirname(current_file_path)
+        # 构建 label.json 的完整路径
+        file_path = os.path.join(current_directory_path, '../../label.json')
+        # 获取文件的绝对路径
+        absolute_path = os.path.abspath(file_path)
+        #print(f"文件路径: {absolute_path}")
+        with open(absolute_path, 'r', encoding='utf-8') as json_file:
+            data = json.load(json_file)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"无法读取标签文件: {str(e)}"
+            )
+    
+    # 根据 keys 从 JSON 数据中提取对应的项
+    for key in labels:
+        # 检查键是否存在于 JSON 数据中 
+        if key in data:
+            # 将该项转换为字符串并添加到结果中
+            result += f"{key}: {data[key]}\n"
     # 例如：调用模型进行预测，返回预测的标签
     # 为了示例，我们简单地返回一个固定的标签字符串
-    return "模型预测标签1 | 模型预测标签2 | 模型预测标签3"
+    return result
 @router.post("/getModelPredictLabels", response_model=LabelsResponse)
 async def get_model_predict_labels_endpoint(request: LabelsRequest):
     try:
         # 将接收到的标签字符串拆分成列表
-        labels_list = request.labels.split(' | ')
+        labels_list = request.labels.split('|')
+        # 去掉每个标签字符串两端的空格
+        labels_list = [label.strip() for label in labels_list]
         # 调用预测标签函数
         new_labels = get_model_predict_labels(labels_list)
         return LabelsResponse(labels=new_labels)
